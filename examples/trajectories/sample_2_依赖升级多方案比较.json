@@ -1,0 +1,44 @@
+{
+  "task": "多方案依赖升级择优",
+  "signature": "依赖升级多方案比较",
+  "steps": [
+    {
+      "intention": "保存基线",
+      "decision": "打基线快照",
+      "tool_call": "snapshot.create",
+      "tool_params": {
+        "name": "baseline"
+      },
+      "tool_result": "created",
+      "env_change": "基线建立"
+    },
+    {
+      "intention": "并行分支A升级保守方案",
+      "decision": "fork A",
+      "tool_call": "fork.create",
+      "tool_params": {
+        "name": "A"
+      },
+      "tool_result": "fork created",
+      "env_change": "分支A就绪"
+    },
+    {
+      "intention": "并行分支B升级激进方案",
+      "decision": "fork B",
+      "tool_call": "fork.create",
+      "tool_params": {
+        "name": "B"
+      },
+      "tool_result": "fork created",
+      "env_change": "分支B就绪"
+    },
+    {
+      "intention": "择优保留",
+      "decision": "比较得分",
+      "tool_call": "fork.compare",
+      "tool_params": {},
+      "tool_result": "B wins",
+      "env_change": "保留B回收A"
+    }
+  ]
+}

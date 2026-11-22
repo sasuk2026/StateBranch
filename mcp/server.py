@@ -260,6 +260,40 @@ class StateBranchService:
     def skill_stats(self) -> dict:
         return self.skill_library.stats()
 
+    def replay_timeline(self, fork_id: Optional[str] = None) -> dict:
+        """时间线浏览：按序展示轨迹步骤（主轨迹或指定分支轨迹）。"""
+        if fork_id:
+            steps = self.fork_scheduler.get_branch_trajectory(fork_id)
+        else:
+            steps = [s.to_dict() for s in self.trajectory.get_steps()]
+        timeline = [{"index": i, "step_id": s.get("step_id", ""),
+                     "intention": s.get("intention", ""),
+                     "decision": s.get("decision", ""),
+                     "tool_call": s.get("tool_call", ""),
+                     "env_change": s.get("env_change", "")}
+                    for i, s in enumerate(steps)]
+        return {"timeline": timeline, "count": len(timeline)}
+
+    def replay_execute(self, fork_id: str, upto: Optional[int] = None) -> dict:
+        """轨迹回放：返回指定分支轨迹（ upto 限制步数）用于重放。"""
+        steps = self.fork_scheduler.get_branch_trajectory(fork_id)
+        if upto is not None:
+            steps = steps[:upto]
+        valid = self.fork_scheduler.verify_branch_trajectory(fork_id)
+        return {"fork_id": fork_id, "steps": steps, "chain_valid": valid,
+                "replayed": len(steps)}
+
+    def trajectory_summary(self, fork_id: Optional[str] = None) -> dict:
+        """摘要压缩：轨迹压缩为意图-决策摘要链。"""
+        if fork_id:
+            steps = self.fork_scheduler.get_branch_trajectory(fork_id)
+        else:
+            steps = [s.to_dict() for s in self.trajectory.get_steps()]
+        summary = [f"{s.get('intention','?')} → {s.get('decision','?')} "
+                   f"[{s.get('tool_call','?')}]" for s in steps]
+        return {"summary": summary, "original_steps": len(steps),
+                "compressed_chars": sum(len(x) for x in summary)}
+
     def benchmark_run(self, seed: int = 42) -> dict:
         from ..eval.benchmark import BenchmarkSuite
         suite = BenchmarkSuite(out_dir=os.path.join(self.work_dir, ".statebranch", "eval"))
@@ -315,6 +349,10 @@ class McpServer:
             "replay.confirm": service.replay_confirm,
             # 阶段4：评估
             "benchmark.run": service.benchmark_run,
+            # 时间线浏览 / 回放执行 / 摘要压缩
+            "replay.timeline": service.replay_timeline,
+            "replay.execute": service.replay_execute,
+            "trajectory.summary": service.trajectory_summary,
         }
 
     # ------------------------------------------------------------------

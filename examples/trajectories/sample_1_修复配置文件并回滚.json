@@ -1,0 +1,34 @@
+{
+  "task": "修复配置文件并回滚",
+  "signature": "修复配置文件并回滚",
+  "steps": [
+    {
+      "intention": "保存当前可用状态",
+      "decision": "打T0快照",
+      "tool_call": "snapshot.create",
+      "tool_params": {
+        "name": "T0"
+      },
+      "tool_result": "created",
+      "env_change": "T0快照建立"
+    },
+    {
+      "intention": "尝试修改配置",
+      "decision": "写入新配置",
+      "tool_call": "file.write",
+      "tool_params": {
+        "path": "config.yaml"
+      },
+      "tool_result": "written",
+      "env_change": "配置已变更"
+    },
+    {
+      "intention": "验证失败后回滚",
+      "decision": "回滚到T0",
+      "tool_call": "restore.execute",
+      "tool_params": {},
+      "tool_result": "success",
+      "env_change": "配置恢复"
+    }
+  ]
+}
